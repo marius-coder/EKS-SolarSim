@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "EKS-SolarSim", "EKS-SolarSim\EKS-SolarSim.pyproj", "{F3E19529-9381-448E-AE32-560C2444DCF2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F3E19529-9381-448E-AE32-560C2444DCF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3E19529-9381-448E-AE32-560C2444DCF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E3EDA8DE-AFC6-4186-BDD0-992AB71FFD08}
+	EndGlobalSection
+EndGlobal
