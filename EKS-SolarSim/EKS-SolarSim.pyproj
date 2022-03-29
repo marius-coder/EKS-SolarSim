@@ -23,6 +23,7 @@
   <ItemGroup>
     <Compile Include="camera.py" />
     <Compile Include="Data\Sonnenstand.py" />
+    <Compile Include="Data\test.py" />
     <Compile Include="EKS_SolarSim.py" />
     <Compile Include="objloader.py" />
     <Compile Include="objviewer - Copy.py" />
