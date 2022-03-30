@@ -1,42 +1,30 @@
 # -*- coding: latin-1 -*-
-# Basic OBJ file viewer. needs objloader from:
-#  http://www.pygame.org/wiki/OBJFileLoader
-# LMB + move: rotate
-# RMB + move: pan
-# Scroll wheel: zoom in/out
-import sys, pygame
+import pygame
 from pygame.locals import *
-from pygame.constants import *
+
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
-import math
-# IMPORT OBJECT LOADER
 from objloader import *
 
-from Sun import Sun
-from camera import Camera
+from Data.Sonnenstand import Sonne
+
+import math
 
 pygame.init()
-cam = Camera()
-first_mouse = True
-global left, right, forward, backward
-left, right, forward, backward = False, False, False, False
-viewport = (800,600)
-hx = viewport[0]/2
-hy = viewport[1]/2
-srf = pygame.display.set_mode(viewport, OPENGL | DOUBLEBUF)
+display = (1280, 720)
+scree = pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
 
-glLightfv(GL_LIGHT0, GL_POSITION,  (-40, 200, 100, 0.0))
-glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
-glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
-glEnable(GL_LIGHT0)
-glEnable(GL_LIGHTING)
-glEnable(GL_COLOR_MATERIAL)
 glEnable(GL_DEPTH_TEST)
-glShadeModel(GL_SMOOTH)           # most obj files expect to be smooth-shaded
+glEnable(GL_LIGHTING)
 
-# LOAD OBJECT AFTER PYGAME INIT
+glShadeModel(GL_SMOOTH)
+glEnable(GL_COLOR_MATERIAL)
+glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+
+glEnable(GL_LIGHT0)
+glLightfv(GL_LIGHT0, GL_AMBIENT, [0.5, 0.5, 0.5, 1])
+glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1])
+
 obj = OBJ("untitled.obj", swapyz=True)
 for i,face in enumerate(obj.faces):
         if i % 2 == 0:
@@ -47,100 +35,48 @@ obj.generate()
 obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
 obj_Sun.generate()
 
-clock = pygame.time.Clock()
-
 glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-width, height = viewport
-gluPerspective(90, width/float(height), 1, 100.0)
-glEnable(GL_DEPTH_TEST)
-glMatrixMode(GL_MODELVIEW)
+gluPerspective(90, (display[0]/display[1]), 0.1, 5000.0)
 
-rx, ry = (0,0)
-tx, ty = (0,0)
-zpos = 5
-rotate = move = False
+glMatrixMode(GL_MODELVIEW)
+gluLookAt(0, -8, 0, 0, 0, 0, 0, 0, 1)
+viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
+glLoadIdentity()
+
+# init mouse movement and center mouse on screen
+displayCenter = [scree.get_size()[i] // 2 for i in range(2)]
+mouseMove = [0, 0]
+pygame.mouse.set_pos(displayCenter)
 
 x = 0
 y = 0  
 A = 0
+hour = 0
+#Sonne Initialisieren
+sun = Sonne()
+sun.Init("Berlin")
+
 up_down_angle = 0.0
-viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
+paused = False
+run = True
+while run:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                run = False
+            if event.key == pygame.K_PAUSE or event.key == pygame.K_p:
+                paused = not paused
+                pygame.mouse.set_pos(displayCenter) 
+        if not paused: 
+            if event.type == pygame.MOUSEMOTION:
+                mouseMove = [event.pos[i] - displayCenter[i] for i in range(2)]
+            pygame.mouse.set_pos(displayCenter)    
 
-# init mouse movement and center mouse on screen
-displayCenter = [srf.get_size()[i] // 2 for i in range(2)]
-mouseMove = [0, 0]
-pygame.mouse.set_pos(displayCenter)
-def do_movement():
-    #Camera Movement
-    if left:
-        cam.process_keyboard("LEFT", 0.05)
-    if right:
-        cam.process_keyboard("RIGHT", 0.05)
-    if forward:
-        cam.process_keyboard("FORWARD", 0.05)
-    if backward:
-        cam.process_keyboard("BACKWARD", 0.05)
-def mouse_look_clb(window, xpos, ypos):
-    global first_mouse, lastX, lastY
-
-    if first_mouse:
-        lastX = xpos
-        lastY = ypos
-        first_mouse = False
-
-    xoffset = xpos - lastX
-    yoffset = lastY - ypos
-
-    lastX = xpos
-    lastY = ypos
-
-    cam.process_mouse_movement(xoffset, yoffset)
-
-while 1:
-    clock.tick(30)
-    for e in pygame.event.get():
-        if e.type == QUIT:
-            sys.exit()
-        elif e.type == KEYDOWN and e.key == K_ESCAPE:
-            sys.exit()
-        elif e.type == MOUSEBUTTONDOWN:
-            if e.button == 4: zpos = max(1, zpos-1)
-            elif e.button == 5: zpos += 1
-            elif e.button == 1: rotate = True
-            elif e.button == 3: move = True
-        elif e.type == MOUSEBUTTONUP:
-            if e.button == 1: rotate = False
-            elif e.button == 3: move = False
-        elif e.type == MOUSEMOTION:
-            mouseMove = [e.pos[i] - displayCenter[i] for i in range(2)]
-            i, j = e.rel
-            if rotate:
-                rx += i
-                ry += j
-            if move:
-                tx += i
-                ty -= j
+    if not paused:
+        # get keys
         keypress = pygame.key.get_pressed()
-                   # init model view matrix
-        glLoadIdentity()
-
-        # apply the look up and down
-        up_down_angle += mouseMove[1]*0.1
-        glRotatef(up_down_angle, 1.0, 0.0, 0.0)
-
-        # init the view matrix
-        glPushMatrix()
-        glLoadIdentity()
-        #Camera Movement
-        if keypress[pygame.K_w]:
-            glTranslatef(0,0,0.1)
-        if keypress[pygame.K_s]:
-            glTranslatef(0,0,-0.1)
-        if keypress[pygame.K_a]:
-            glTranslatef(0.1,0,0)
-        if keypress[pygame.K_d]:
-            glTranslatef(-0.1,0,0)
 
         if keypress[pygame.K_UP]:  
             y += 1
@@ -154,7 +90,35 @@ while 1:
             A += 30
         if keypress[pygame.K_PAGEDOWN]: 
             A-= 30
-                
+        # init model view matrix
+        glLoadIdentity()
+
+        # apply the look up and down
+        up_down_angle += mouseMove[1]*0.1
+        glRotatef(up_down_angle, 1.0, 0.0, 0.0)
+
+        # init the view matrix
+        glPushMatrix()
+        glLoadIdentity()
+
+        # apply the movment 
+        if keypress[pygame.K_w]:
+            glTranslatef(0,0,0.1)
+        if keypress[pygame.K_s]:
+            glTranslatef(0,0,-0.1)
+        if keypress[pygame.K_d]:
+            glTranslatef(-0.1,0,0)
+        if keypress[pygame.K_a]:
+            glTranslatef(0.1,0,0)
+        if keypress[pygame.K_SPACE]:
+            glTranslatef(0,-0.1,0)
+        if keypress[pygame.K_LSHIFT]:
+            glTranslatef(0,0.1,0)
+        if keypress[pygame.K_KP_PLUS]:
+            hour += 1
+        if keypress[pygame.K_KP_MINUS]:
+            hour -= 1
+
         # apply the left and right rotation
         glRotatef(mouseMove[0]*0.1, 0.0, 1.0, 0.0)
 
@@ -166,35 +130,49 @@ while 1:
         glPopMatrix()
         glMultMatrixf(viewMatrix)
 
-    do_movement()
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glLoadIdentity()
+        glLightfv(GL_LIGHT0, GL_POSITION, [1, -1, 1, 0])
 
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
+        glPushMatrix()
 
-    # RENDER OBJECT
-    glTranslate(tx/20., ty/20., - zpos)
-    glRotate(ry, 1, 0, 0)
-    glRotate(rx, 0, 1, 0)   
+        glColor4f(0.5, 0.5, 0.5, 1)
+        glBegin(GL_QUADS)
+        glVertex3f(-10, -10, -2)
+        glVertex3f(10, -10, -2)
+        glVertex3f(10, 10, -2)
+        glVertex3f(-10, 10, -2)
+        glEnd()
 
-    obj.render()   
-    
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    width, height = viewport
-    #gluPerspective(90.0, width/float(height), 1, 100.0)
-    glEnable(GL_DEPTH_TEST)
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()# RENDER OBJECT
+        glTranslatef(-1.5, 0, 0)
+        #obj.render()
 
-    cx = 0
-    cy = 0
-    
-    X = cx + (x-cx)*math.cos(math.radians(A)) - (y-cy)*math.sin(math.radians(A))
-    Y = cx + (x-cx)*math.sin(math.radians(A)) + (y-cy)*math.cos(math.radians(A))
-    glTranslate(X, Y, - zpos)
-    obj_Sun.render()
+        glTranslatef(3, 0, 0)
+        cx = 0
+        cy = 0
+        print(f"Stunde: {hour}")
+        if hour < 0:
+            hour = 23
+        elif hour > 23:
+            hour = 0
+        angles = sun.CalcSonnenstand("2006-06-22 "+str(hour)+":00:00")
+        print(f"Azimuth: {angles['Azimuth']}")
+        print(f"Höhenwinkel: {angles['Höhenwinkel']}")
+        X = y * math.sin(math.radians(angles["Höhenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
+        Y = y * math.sin(math.radians(angles["Höhenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
+        Z = y * math.cos(math.radians(angles["Höhenwinkel"]))
+        
+        print(f"X Koordinate: {X}")
+        print(f"Y Koordinate: {Y}")
+        print(f"Z Koordinate: {Z}")
 
-    pygame.display.flip()
+        glTranslate(X, Y , -Z)
+        #glTranslate(x, y, 0)
+        obj_Sun.render()
 
+        glPopMatrix()
 
+        pygame.display.flip()
+        pygame.time.wait(10)
+
+pygame.quit()

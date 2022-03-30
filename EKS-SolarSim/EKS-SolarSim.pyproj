@@ -4,13 +4,15 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>f3e19529-9381-448e-ae32-560c2444dcf2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>objviewer.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>EKS-SolarSim</Name>
     <RootNamespace>EKS-SolarSim</RootNamespace>
+    <TestFramework>Pytest</TestFramework>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,16 +28,19 @@
     <Compile Include="Data\test.py" />
     <Compile Include="EKS_SolarSim.py" />
     <Compile Include="objloader.py" />
-    <Compile Include="objviewer - Copy.py" />
     <Compile Include="objviewer.py" />
     <Compile Include="Sun.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Objects\Sonne\Sonne.mtl" />
+    <Content Include="Objects\Sonne\Sonne.obj" />
     <Content Include="untitled.mtl" />
     <Content Include="untitled.obj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Data\" />
+    <Folder Include="Objects\" />
+    <Folder Include="Objects\Sonne\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
