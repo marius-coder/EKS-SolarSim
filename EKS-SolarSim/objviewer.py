@@ -25,12 +25,8 @@ glEnable(GL_LIGHT0)
 glLightfv(GL_LIGHT0, GL_AMBIENT, [0.5, 0.5, 0.5, 1])
 glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1])
 
-obj = OBJ("untitled.obj", swapyz=True)
-for i,face in enumerate(obj.faces):
-        if i % 2 == 0:
-            face = list(face)
-            face[-1] = "Red"
-            obj.faces[i] = tuple(face)
+obj = OBJ("Building1.obj", swapyz=True)
+
 obj.generate()
 obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
 obj_Sun.generate()
@@ -51,6 +47,9 @@ pygame.mouse.set_pos(displayCenter)
 x = 0
 y = 0  
 A = 0
+X = 0
+Y = 0
+Z = 0
 hour = 0
 #Sonne Initialisieren
 sun = Sonne()
@@ -130,7 +129,7 @@ while run:
         glPopMatrix()
         glMultMatrixf(viewMatrix)
 
-        glLightfv(GL_LIGHT0, GL_POSITION, [1, -1, 1, 0])
+        glLightfv(GL_LIGHT0, GL_POSITION, [X, Y, Z])
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
@@ -145,7 +144,7 @@ while run:
         glEnd()
 
         glTranslatef(-1.5, 0, 0)
-        #obj.render()
+        obj.render()
 
         glTranslatef(3, 0, 0)
         cx = 0
@@ -160,13 +159,13 @@ while run:
         print(f"Höhenwinkel: {angles['Höhenwinkel']}")
         X = y * math.sin(math.radians(angles["Höhenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
         Y = y * math.sin(math.radians(angles["Höhenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
-        Z = y * math.cos(math.radians(angles["Höhenwinkel"]))
+        Z = y * math.cos(math.radians(angles["Höhenwinkel"])) * -1
         
         print(f"X Koordinate: {X}")
         print(f"Y Koordinate: {Y}")
         print(f"Z Koordinate: {Z}")
 
-        glTranslate(X, Y , -Z)
+        glTranslate(X, Y , Z)
         #glTranslate(x, y, 0)
         obj_Sun.render()
 
@@ -174,5 +173,8 @@ while run:
 
         pygame.display.flip()
         pygame.time.wait(10)
+        import os
+        clear = lambda: os.system('cls')
+        clear()
 
 pygame.quit()
