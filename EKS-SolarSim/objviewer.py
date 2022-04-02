@@ -58,6 +58,7 @@ sun.Init("Berlin")
 up_down_angle = 0.0
 paused = False
 run = True
+calculate = False
 while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -85,10 +86,10 @@ while run:
             x -= 1
         if keypress[pygame.K_RIGHT]:
             x += 1
-        if keypress[pygame.K_PAGEUP]:  
-            A += 30
-        if keypress[pygame.K_PAGEDOWN]: 
-            A-= 30
+        if keypress[pygame.K_HOME]:  
+            calculate = True
+        if keypress[pygame.K_END]: 
+            calculate = False
         # init model view matrix
         glLoadIdentity()
 
@@ -101,20 +102,25 @@ while run:
         glLoadIdentity()
 
         # apply the movment 
+        camera_Speed = 0.2
         if keypress[pygame.K_w]:
-            glTranslatef(0,0,0.1)
+            glTranslatef(0,0,camera_Speed)
         if keypress[pygame.K_s]:
-            glTranslatef(0,0,-0.1)
+            glTranslatef(0,0,-camera_Speed)
         if keypress[pygame.K_d]:
-            glTranslatef(-0.1,0,0)
+            glTranslatef(-camera_Speed,0,0)
         if keypress[pygame.K_a]:
-            glTranslatef(0.1,0,0)
+            glTranslatef(camera_Speed,0,0)
         if keypress[pygame.K_SPACE]:
-            glTranslatef(0,-0.1,0)
+            glTranslatef(0,-camera_Speed,0)
         if keypress[pygame.K_LSHIFT]:
-            glTranslatef(0,0.1,0)
+            glTranslatef(0,camera_Speed,0)
         if keypress[pygame.K_KP_PLUS]:
             hour += 1
+        if keypress[pygame.K_KP_MINUS]:
+            hour -= 1
+        if keypress[pygame.K_KP_MINUS]:
+            hour -= 1
         if keypress[pygame.K_KP_MINUS]:
             hour -= 1
 
@@ -134,6 +140,12 @@ while run:
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
         glPushMatrix()
+        glRotatef(A,1,1,1)
+        glScalef(-1.0, 1.0, 1.0)
+        obj.render()
+        glPopMatrix()
+
+        glPushMatrix()
 
         glColor4f(0.5, 0.5, 0.5, 1)
         glBegin(GL_QUADS)
@@ -144,7 +156,8 @@ while run:
         glEnd()
 
         glTranslatef(-1.5, 0, 0)
-        obj.render()
+
+        
 
         glTranslatef(3, 0, 0)
         cx = 0
@@ -156,10 +169,10 @@ while run:
             hour = 0
         angles = sun.CalcSonnenstand("2006-06-22 "+str(hour)+":00:00")
         print(f"Azimuth: {angles['Azimuth']}")
-        print(f"Höhenwinkel: {angles['Höhenwinkel']}")
-        X = y * math.sin(math.radians(angles["Höhenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
-        Y = y * math.sin(math.radians(angles["Höhenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
-        Z = y * math.cos(math.radians(angles["Höhenwinkel"])) * -1
+        print(f"Hohenwinkel: {angles['Hohenwinkel']}")
+        X = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
+        Y = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
+        Z = y * math.cos(math.radians(angles["Hohenwinkel"])) * -1
         
         print(f"X Koordinate: {X}")
         print(f"Y Koordinate: {Y}")
@@ -170,6 +183,19 @@ while run:
         obj_Sun.render()
 
         glPopMatrix()
+        #if A > 361:
+        globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"])
+        if calculate == True:
+            for face in obj.faces:
+            
+                print(obj.vertices[face[0][0]-1])
+                print(obj.vertices[face[0][1]-1])
+                print(obj.vertices[face[0][2]-1])
+                print(obj.vertices[face[0][3]-1])
+                sun.AddOrientationandTilt(obj, face, angles, globalStrahlung)
+                print("----------------------------------")
+            calculate = False
+
 
         pygame.display.flip()
         pygame.time.wait(10)

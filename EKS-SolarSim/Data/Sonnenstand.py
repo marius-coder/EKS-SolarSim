@@ -1,6 +1,7 @@
 # -*- coding: latin-1 -*-
 import dateutil.parser as parser
 from math import sin,cos,tan,atan2,atan,degrees,radians,asin
+from collections import Counter
 import pandas as pd
 import requests
 import urllib.parse
@@ -97,7 +98,7 @@ class Sonne:
 		hr = h + R / 60
 		
 		inter = {"Azimuth" : Azimuth,
-				"Höhenwinkel" : hr
+				"Hohenwinkel" : hr
 			}
 		if debug == True:
 			print(f"n: {n}")
@@ -114,6 +115,8 @@ class Sonne:
 			print(f"Azimuth: {Azimuth}")
 			print(f"Hohenwinkel: {h}")
 			print(f"Hohenwinkel Korrektiert: {hr}")
+			print(f"Latitude: {self.lat}")
+			print(f"Longitude: {self.lon}")			
 		return inter
 
 	def CalcGlobalstrahlung(self, hohenwinkel, debug = False):
@@ -127,12 +130,60 @@ class Sonne:
 		#Annahme dass die diffuse Strahlung 10% der direkten ausmacht
 		dGlobalSolarRadiation = dSolarRadiation * 1.1
 		
-
+		
 		if debug == True:
 			print(f"AirMass {airMass}")
 			print(f"Direkte Solare Strahlung {dSolarRadiation} kW/m²")
 			print(f"Globale Solare Strahlung {dGlobalSolarRadiation} kW/m²")
+		return dGlobalSolarRadiation
+
+
+	def AddOrientationandTilt(self, obj, face, angles, dGlobalSolarRadiation):
+		inter = []
+		inter.append(list(obj.vertices[face[0][0]-1]))
+		inter.append(list(obj.vertices[face[0][1]-1]))
+		inter.append(list(obj.vertices[face[0][2]-1]))
+		inter.append(list(obj.vertices[face[0][3]-1]))
+
+		P1 = obj.vertices[face[0][0]-1]
+		P2 = obj.vertices[face[0][1]-1]
+		P3 = obj.vertices[face[0][2]-1]
+		P4 = obj.vertices[face[0][3]-1]
+
+		X = set([P1[0],P2[0],P3[0],P4[0]])
+		Y = set([P1[1],P2[1],P3[1],P4[1]])
+		Z = set([P1[2],P2[2],P3[2],P4[2]])
+		
+		if len(Z) == 2:
+			moduleTilt = 180
+		else:
+			moduleTilt = 90
+
+		X_diff = max(X) - min(X)
+		Y_diff = max(Y) - min(Y)
+
+		moduleOrientation = degrees(atan(min([X_diff,Y_diff])/max([X_diff,Y_diff])))
+
+		print(f"Wand Azimuth {moduleOrientation}°")
+		print(f"Wand Tilt {moduleTilt}°")
+		#inter = [item for sublist in inter for item in sublist]
+		#max_key = max(Counter(inter), key=Counter(inter).get)
+		#index = list(obj.vertices[face[0][0]-1]).index(max_key)
+		#print(obj.vertices[face[0][0]-1][index])
+		#test = Counter(inter)
+		
+		hohenwinkel = radians(angles["Hohenwinkel"])
+		azimuth = radians(angles["Azimuth"])
+		moduleTilt = radians(moduleTilt) #Pitch
+		moduleOrientation = radians(moduleOrientation) #Yaw
+
+
+		reductionFactor = ((cos(hohenwinkel)*sin(moduleTilt)*\
+			cos(moduleOrientation-azimuth))+sin(hohenwinkel)*cos(moduleTilt))
+		reducedGlobalSolarRadiation = dGlobalSolarRadiation * reductionFactor
+		print(f"Reduzierte Globalstrahlung {reducedGlobalSolarRadiation}kW/m²")
+		return
 sun = Sonne()
 sun.Init("Berlin")
-test = sun.CalcSonnenstand("2006-06-22 12:00:00")
-sun.CalcGlobalstrahlung(hohenwinkel = test["Höhenwinkel"], debug = True)
+test = sun.CalcSonnenstand("2006-06-22 12:00:00", debug = True)
+sun.CalcGlobalstrahlung(hohenwinkel = test["Hohenwinkel"], debug = True)
