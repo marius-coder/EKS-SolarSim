@@ -7,7 +7,10 @@ from OpenGL.GLU import *
 class Sun:
     def __init__(self, obj):
         self.obj = obj
-        self.pos = [0, 0, 0]
+        self.x = 0
+        self.y = 0
+        self.z = 0
+
 
     def draw(self):
         glPushMatrix()

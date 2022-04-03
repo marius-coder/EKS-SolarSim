@@ -29,6 +29,7 @@
     <Compile Include="EKS_SolarSim.py" />
     <Compile Include="objloader.py" />
     <Compile Include="objviewer.py" />
+    <Compile Include="Raytrace.py" />
     <Compile Include="Sun.py" />
   </ItemGroup>
   <ItemGroup>

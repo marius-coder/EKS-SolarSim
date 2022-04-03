@@ -7,7 +7,7 @@ from OpenGL.GLU import *
 from objloader import *
 
 from Data.Sonnenstand import Sonne
-
+from Raytrace import DrawLine
 import math
 
 pygame.init()
@@ -47,9 +47,7 @@ pygame.mouse.set_pos(displayCenter)
 x = 0
 y = 0  
 A = 0
-X = 0
-Y = 0
-Z = 0
+
 hour = 0
 #Sonne Initialisieren
 sun = Sonne()
@@ -119,10 +117,6 @@ while run:
             hour += 1
         if keypress[pygame.K_KP_MINUS]:
             hour -= 1
-        if keypress[pygame.K_KP_MINUS]:
-            hour -= 1
-        if keypress[pygame.K_KP_MINUS]:
-            hour -= 1
 
         # apply the left and right rotation
         glRotatef(mouseMove[0]*0.1, 0.0, 1.0, 0.0)
@@ -135,7 +129,7 @@ while run:
         glPopMatrix()
         glMultMatrixf(viewMatrix)
 
-        glLightfv(GL_LIGHT0, GL_POSITION, [X, Y, Z])
+        glLightfv(GL_LIGHT0, GL_POSITION, [sun.x, sun.y, sun.z])
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
@@ -155,11 +149,8 @@ while run:
         glVertex3f(-10, 10, -2)
         glEnd()
 
-        glTranslatef(-1.5, 0, 0)
 
-        
 
-        glTranslatef(3, 0, 0)
         cx = 0
         cy = 0
         print(f"Stunde: {hour}")
@@ -167,23 +158,37 @@ while run:
             hour = 23
         elif hour > 23:
             hour = 0
-        angles = sun.CalcSonnenstand("2006-06-22 "+str(hour)+":00:00")
+        angles = sun.CalcSonnenstand("2022-06-21 "+str(hour)+":00:00")
         print(f"Azimuth: {angles['Azimuth']}")
         print(f"Hohenwinkel: {angles['Hohenwinkel']}")
-        X = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
-        Y = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
-        Z = y * math.cos(math.radians(angles["Hohenwinkel"])) * -1
+        sun.x = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
+        sun.y = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
+        sun.z = y * math.cos(math.radians(angles["Hohenwinkel"])) * -1
         
-        print(f"X Koordinate: {X}")
-        print(f"Y Koordinate: {Y}")
-        print(f"Z Koordinate: {Z}")
+        print(f"X Koordinate: {sun.x}")
+        print(f"Y Koordinate: {sun.y}")
+        print(f"Z Koordinate: {sun.z}")
 
-        glTranslate(X, Y , Z)
-        #glTranslate(x, y, 0)
+        glTranslate(sun.x, sun.y , sun.z)
         obj_Sun.render()
-
         glPopMatrix()
-        #if A > 361:
+
+        DrawLine([0,0,0], [sun.x,sun.y,sun.z])
+
+        glColor4f(1, 0, 0, 1)
+        DrawLine([-100,0,0], [100,0,0])
+
+        glColor4f(0, 1, 0, 1)
+        DrawLine([0,-100,0], [0,100,0])
+
+        glColor4f(0, 0, 1, 1)
+        DrawLine([0,0,-100], [0,0,100])
+
+        glColor4f(0.5, 0.5, 0.5, 1)
+        glLineWidth(2.0)
+
+
+
         globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"])
         if calculate == True:
             for face in obj.faces:
