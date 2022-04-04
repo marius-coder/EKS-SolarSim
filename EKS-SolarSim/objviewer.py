@@ -27,10 +27,10 @@ glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1])
 
 obj = OBJ("Building1.obj", swapyz=True)
 
-obj.generate()
+
 obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
 obj_Sun.generate()
-
+obj.generate()
 glMatrixMode(GL_PROJECTION)
 gluPerspective(90, (display[0]/display[1]), 0.1, 5000.0)
 
@@ -164,6 +164,7 @@ while run:
         sun.x = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
         sun.y = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
         sun.z = y * math.cos(math.radians(angles["Hohenwinkel"])) * -1
+         
         
         print(f"X Koordinate: {sun.x}")
         print(f"Y Koordinate: {sun.y}")
@@ -189,7 +190,7 @@ while run:
 
 
 
-        globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"])
+        globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"], debug = True)
         if calculate == True:
             for face in obj.faces:
             

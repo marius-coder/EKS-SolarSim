@@ -1,10 +1,13 @@
 # -*- coding: latin-1 -*-
 import dateutil.parser as parser
-from math import sin,cos,tan,atan2,atan,degrees,radians,asin
+from math import sin,cos,tan,atan2,atan,degrees,radians,asin, acos
 from collections import Counter
 import pandas as pd
 import requests
 import urllib.parse
+import datetime
+import timezonefinder, pytz
+
 
 class Sonne:
 	JD_Base = 2451545 #Julianisches Datum
@@ -14,21 +17,49 @@ class Sonne:
 		self.z = 0
 
 
-	def from_address(self, address_string="Stephansplatz, Wien, Österreich"):
+	def FromAddress(self, address_string="Stephansplatz, Wien, Österreich"):
 		parsed_address = urllib.parse.quote(address_string)
 		url = 'https://nominatim.openstreetmap.org/search/' + parsed_address +'?format=json'
 		response = requests.get(url).json()
 		self.lat = float(response[0]["lat"])
 		self.lon = float(response[0]["lon"])
 
-	def elevation_function(self):
+	def ElevationFunction(self):
 		url = 'https://api.opentopodata.org/v1/aster30m?locations=' + str(self.lat) + ','+ str(self.lon)
 		response = requests.get(url).json()
 		self.elevation = response['results'][0]['elevation'] / 1000
 
+
+	def GetHorizon(self):
+		url = 'https://re.jrc.ec.europa.eu/api/v5_1/printhorizon?lat=' + str(self.lat) + '&lon=' + str(self.lon) + '&outputformat=json'
+		response = requests.get(url).json()
+		self.horizonData = response["outputs"]["horizon_profile"]
+		self.horizonList = []
+		self.AzimuthList = []
+		for i in range(len(self.horizonData)):
+			self.horizonList.append(float(self.horizonData[i]["H_hor"]))
+			self.AzimuthList.append(float(self.horizonData[i]["A"]))
+
+		return
+
+	def SetTimezone(self, date):
+		tf = timezonefinder.TimezoneFinder()
+		# From the lat/long, get the tz-database-style time zone name (e.g. 'America/Vancouver') or None
+		timezone_str = tf.certain_timezone_at(lat=self.lat, lng=self.lon)
+
+		if timezone_str is None:
+			print("Could not determine the time zone")
+		else:
+			# Display the current timezone
+			tz = pytz.timezone(timezone_str)
+			dt = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+			self.timezone = (tz.utcoffset(dt) - tz.dst(dt)).seconds/3600
+
 	def Init(self,address):
-		self.from_address(address)
-		self.elevation_function()
+		self.FromAddress(address)
+		self.ElevationFunction()
+		self.GetHorizon()
+		
 
 	def CalcJulianischesDatum(self,date):
 		year = parser.parse(date).year
@@ -42,86 +73,150 @@ class Sonne:
 		return ts.to_julian_date()
 
 	def CalcSonnenstand(self, date, debug = False):
+		self.SetTimezone(date)
+		JD_Base = 2451545 #Julianisches Datum
+		#Julian Day
 		JD = self.CalcJulianischesDatum(date)
-		#Zeitvariable
-		n = JD - self.JD_Base
 		
-		#Position der Sonne auf der Ekliptik
-		L = (280.46 + 0.9856474 * n) % 360
+		#Julian Century
+		JC = (JD - JD_Base) / 36525
+
+		#Geom Mean Long Sun (deg)
+		gMeanLongSun = (280.46646 + JC * (36000.76983 + JC * 0.0003032)) % 360
+
+		#Geom Mean Anom Sun (deg)
+		gMeanAnomSun = 357.52911 + JC * (35999.05029 - 0.0001537 * JC)
+
+		#Eccent Earth Orbit
+		eccEarthOrbit = 0.016708634 - JC * (0.000042037 + 0.0000001267 * JC)
+
+		#Sun Eq of Ctr
+		sunCtr = sin(radians(gMeanAnomSun)) * (1.914602 - JC * (0.004817 + 0.000014 * JC)) + \
+					sin(radians(2*gMeanAnomSun)) * (0.019993 - 0.000101 * JC) + sin(radians(3 * gMeanAnomSun))*0.000289
+
+		#Sun True Long (deg)
+		sunTrueLong = gMeanLongSun + sunCtr
+
+		#Sun True Anom (deg)
+		sunTrueAnom = gMeanAnomSun + sunCtr
 		
-		#Einfluss der Bahnelliptizität
-		g = (357.528 + 0.9856003 * n) % 360
+		#Sun Rad Vector (AUs)
+		sunRadVec = (1.000001018 * (1 - eccEarthOrbit * eccEarthOrbit)) / (1 + eccEarthOrbit * cos(radians(sunTrueAnom)))
+
+		#Sun App Long (deg)
+		sunAppLong = sunTrueLong - 0.00569 - 0.00478 * sin(radians(125.04 - 1934.136 * JC))
+
+		#Mean Obliq Ecliptic (deg)
+		meanObliqEc = 23 + (26 + ((21.448 - JC * (46.815 + JC * (0.00059 - JC * 0.001813))))/60)/60
+
+		#Obliq Corr (deg)
+		obliqCorr = meanObliqEc + 0.00256 * cos(radians(125.04-1934.136*JC))
+
+		#Sun Rt Ascenscion (deg)
+		sunRtAsc = degrees(atan2(cos(radians(obliqCorr)) * sin(radians(sunAppLong)),cos(radians(sunAppLong))))
+																		 
+		#Sun Declination (deg)
+		sunDecAng  = degrees(asin(sin(radians(obliqCorr))*sin(radians(sunAppLong))))
+
+		#var y
+		var_y = tan(radians(obliqCorr/2)) * tan(radians(obliqCorr/2))
+
+		#Eq of Time (minutes)
+		eqTime = 4 * degrees(var_y * sin(2 * radians(gMeanLongSun)) - 2 * eccEarthOrbit * sin(radians(gMeanAnomSun)) + \
+					  4 * eccEarthOrbit * var_y * sin(radians(gMeanAnomSun)) * cos(2 * radians(gMeanLongSun)) - 0.5 * var_y * \
+					  var_y * sin(4 * radians(gMeanLongSun)) - 1.25 * eccEarthOrbit * eccEarthOrbit * \
+					  sin(2 * radians(gMeanAnomSun)))
+
+		#HA Sunrise (deg)
+		HASunrise = degrees(acos(cos(radians(90.833))/(cos(radians(self.lat)) * cos(radians(sunDecAng))) - \
+						  tan(radians(self.lat)) * tan(radians(sunDecAng))))
+
+		#Solar Noon (LST)
+		solarNoon = (720 - 4 * self.lon - eqTime + self.timezone * 60) / 1440
+
+		#Sunrise Time (LST)
+		sunriseTime = solarNoon - HASunrise * 4 / 1440
+
+		#Sunset Time (LST)
+		sunsetTime = solarNoon + HASunrise * 4 / 1440
+
+		#Sunlight Duration (minutes)
+		sunDuration = HASunrise * 8
+
+		#True Solar Time (min)
+		hour = (parser.parse(date).hour + 1) / 24
+		trueSolarTime = (hour * 1440 + eqTime + 4 * self.lon - 60 * self.timezone) % 1440
+
+		#Hour Angle (deg)
+		if trueSolarTime / 4 < 0:
+			hourAngle = trueSolarTime / 4 + 180
+		else:
+			hourAngle = trueSolarTime / 4 - 180
+
+		#Solar Zenith Angle (deg)
+		solarZenAng = degrees(acos(sin(radians(self.lat)) * sin(radians(sunDecAng)) + cos(radians(self.lat)) * \
+							 cos(radians(sunDecAng)) * cos(radians(hourAngle))))
+
+		#Solar Elevation Angle (deg)
+		solarElevationAng = 90 - solarZenAng
 		
-		#ekliptikale Länge der Sonne
-		Lambda = L + 1.915 * sin(radians(g)) + 0.01997 * sin(radians(2*g))
-		
-		#Äquatorialkoordinaten der Sonne
-		e = 23.439 - 0.0000004 * n
-		
-		if cos(radians(Lambda)) > 0:
-			alpha = degrees(atan(cos(radians(e)) * tan(radians(Lambda))))
-		elif cos(radians(Lambda)) < 0:
-			alpha = degrees(atan(cos(radians(e)) * tan(radians(Lambda))) + 4 * atan(1))
-		
-		#senkrecht zum Himmelsäquator gezählte Deklination
-		d = degrees(asin(sin(radians(e))*sin(radians(Lambda))))
-		
-		#T0 in julianischen Jahrhunderten
-		year = parser.parse(date).year
-		month = parser.parse(date).month
-		day = parser.parse(date).day
-		hour = parser.parse(date).hour
-		minute = parser.parse(date).minute
-		second = parser.parse(date).second
-		ts = pd.Timestamp(year = year,  month = month, day = day,  
-                  hour = 0)
-		
-		T0 = (ts.to_julian_date() - self.JD_Base) / 36525
-		
-		#mittlere Sternzeit Theta in Greenwich für den gesuchten Zeitpunkt T 
-		T = hour + minute / 60 + second / 3600
-		Theta_Null = (6.697376 + 2400.05134 * T0 + 1.002738 * T) % 24
-		
-		#Stundenwinkel des Frühlingspunkts
-		Theta = Theta_Null * 15 + self.lon
-		
-		#Stundenwinkel tau  der Sonne für jenen Ort:
-		tau = radians(Theta - alpha)
-		#Azimuth der Sonne
-		links = cos(tau)*sin(radians(self.lat))
-		rechts = tan(radians(d)) * cos(radians(self.lat))
-		Azimuth = degrees(atan((sin(tau)/(links-rechts))))
-		if links-rechts < 0:
-			Azimuth += 180
-			Azimuth = Azimuth - 360
-		
-		#Hohenwinkel
-		h = degrees(asin(cos(radians(d))*cos(tau)*cos(radians(self.lat))+sin(radians(d))*sin(radians(self.lat))))
-		
-		#Korrektur des Hohenwinkel wegen Refraktion
-		R = 1.02/tan(radians(h)+radians(10.3/(h+5.11)))
-		hr = h + R / 60
-		
-		inter = {"Azimuth" : Azimuth,
-				"Hohenwinkel" : hr
-			}
+		#Approx Atmospheric Refraction (deg)
+		if solarElevationAng > 85:
+			refractionFactor = 0
+		elif solarElevationAng > 5:
+			refractionFactor = 58.1 / tan(radians(solarElevationAng)) - 0.07/pow(tan(radians(solarElevationAng)),3) + \
+								0.000086 / pow(tan(radians(solarElevationAng)),5)
+		elif solarElevationAng > -0.575:
+			refractionFactor = 1735 + solarElevationAng * (-518.2 + solarElevationAng * (103.4 + solarElevationAng * \
+								(-12.79 + solarElevationAng * 0.711)))
+		else:
+			refractionFactor = -20.772 / tan(radians(solarElevationAng))
+
+		refractionFactor = refractionFactor / 3600
+
+		#Solar Elevation corrected for atm refraction (deg)
+		solarElevationAngCorr = solarElevationAng + refractionFactor
+
+		#Solar Azimuth Angle (deg cw from N)
+		#hourAngle = 10
+		if hourAngle > 0:
+			solarAzimuth = (degrees(acos(((sin(radians(self.lat)) * cos(radians(solarZenAng))) - sin(radians(sunDecAng))) / (cos(radians(self.lat)) * sin(radians(solarZenAng))))) + 180) % 360
+		else:
+			solarAzimuth = (540 - degrees(acos(((sin(radians(self.lat)) * cos(radians(solarZenAng))) - sin(radians(sunDecAng))) / (cos(radians(self.lat)) * sin(radians(solarZenAng)))))) % 360
+
 		if debug == True:
-			print(f"n: {n}")
-			print(f"L: {L}")
-			print(f"g: {g}")
-			print(f"Lambda: {Lambda}")
-			print(f"e: {e}")
-			print(f"alpha: {alpha}")
-			print(f"Deklination: {d}")
-			print(f"JD0: {ts.to_julian_date()}")
-			print(f"T0: {T0}")
-			print(f"Theta_Null: {Theta_Null}")
-			print(f"Theta: {Theta}")
-			print(f"Azimuth: {Azimuth}")
-			print(f"Hohenwinkel: {h}")
-			print(f"Hohenwinkel Korrektiert: {hr}")
-			print(f"Latitude: {self.lat}")
-			print(f"Longitude: {self.lon}")			
+			print(f"Julian Day: {JD}")
+			print(f"Julian Century: {JC}")
+			print(f"Geom Mean Long Sun (deg): {gMeanLongSun}")
+			print(f"Geom Mean Anom Sun (deg): {gMeanAnomSun}")
+			print(f"Eccent Earth Orbit: {eccEarthOrbit}")
+			print(f"Sun Eq of Ctr: {sunCtr}")
+			print(f"Sun True Long (deg): {sunTrueLong}")
+			print(f"Sun True Anom (deg): {sunTrueAnom}")
+			print(f"Sun Rad Vector (AUs): {sunRadVec}")
+			print(f"Sun App Long (deg): {sunAppLong}")
+			print(f"Mean Obliq Ecliptic (deg): {meanObliqEc}")
+			print(f"Obliq Corr (deg): {obliqCorr}")
+			print(f"Sun Rt Ascen (deg): {sunRtAsc}")
+			print(f"Sun Declination (deg): {sunDecAng}")
+			print(f"var y: {var_y}")
+			print(f"Eq of Time (minutes): {eqTime}")
+			print(f"HA Sunrise (deg): {HASunrise}")
+			print(f"Solar Noon (LST): {solarNoon}")
+			print(f"Sunrise Time (LST): {sunriseTime}")
+			print(f"Sunset Time (LST): {sunsetTime}")
+			print(f"Sunlight Duration (minutes): {sunDuration}")
+			print(f"True Solar Time (min): {trueSolarTime}")
+			print(f"Hour Angle (deg): {hourAngle}")
+			print(f"Solar Zenith Angle (deg): {solarZenAng}")
+			print(f"Solar Elevation Angle (deg): {solarElevationAng}")
+			print(f"Approx Atmospheric Refraction (deg): {refractionFactor}")
+			print(f"Solar Elevation corrected for atm refraction (deg): {solarElevationAngCorr}")
+			print(f"Solar Azimuth Angle (deg cw from N): {solarAzimuth}")
+			
+		inter = {"Azimuth" : solarAzimuth,
+			"Hohenwinkel" : solarElevationAngCorr
+		}
 		return inter
 
 	def CalcGlobalstrahlung(self, hohenwinkel, debug = False):
@@ -189,6 +284,7 @@ class Sonne:
 		print(f"Reduzierte Globalstrahlung {reducedGlobalSolarRadiation}kW/m²")
 		return
 sun = Sonne()
+date = "2006-06-21 14:00:00"
 sun.Init("Berlin")
-test = sun.CalcSonnenstand("2006-06-22 12:00:00", debug = True)
-sun.CalcGlobalstrahlung(hohenwinkel = test["Hohenwinkel"], debug = True)
+test = sun.CalcSonnenstand(date, debug = False)
+sun.CalcGlobalstrahlung(hohenwinkel = test["Hohenwinkel"], debug = False)

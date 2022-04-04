@@ -4,8 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>f3e19529-9381-448e-ae32-560c2444dcf2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>objviewer.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -25,7 +24,7 @@
   <ItemGroup>
     <Compile Include="camera.py" />
     <Compile Include="Data\Sonnenstand.py" />
-    <Compile Include="Data\test.py" />
+    <Compile Include="Data\Sonnenplots.py" />
     <Compile Include="EKS_SolarSim.py" />
     <Compile Include="objloader.py" />
     <Compile Include="objviewer.py" />
