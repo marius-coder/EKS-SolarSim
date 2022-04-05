@@ -1,4 +1,5 @@
 # -*- coding: latin-1 -*-
+from numpy import absolute
 import pygame
 from pygame.locals import *
 
@@ -7,7 +8,7 @@ from OpenGL.GLU import *
 from objloader import *
 
 from Data.Sonnenstand import Sonne
-from Raytrace import DrawLine
+from Raytrace import DrawLine, CreateConvexPolygon
 import math
 
 pygame.init()
@@ -31,6 +32,7 @@ obj = OBJ("Building1.obj", swapyz=True)
 obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
 obj_Sun.generate()
 obj.generate()
+CreateConvexPolygon(obj)
 glMatrixMode(GL_PROJECTION)
 gluPerspective(90, (display[0]/display[1]), 0.1, 5000.0)
 
@@ -45,7 +47,7 @@ mouseMove = [0, 0]
 pygame.mouse.set_pos(displayCenter)
 
 x = 0
-y = 0  
+r = 200
 A = 0
 
 hour = 0
@@ -77,9 +79,9 @@ while run:
         keypress = pygame.key.get_pressed()
 
         if keypress[pygame.K_UP]:  
-            y += 1
+            r += 1
         if keypress[pygame.K_DOWN]:
-            y -= 1
+            r -= 1
         if keypress[pygame.K_LEFT]:
             x -= 1
         if keypress[pygame.K_RIGHT]:
@@ -158,12 +160,12 @@ while run:
             hour = 23
         elif hour > 23:
             hour = 0
-        angles = sun.CalcSonnenstand("2022-06-21 "+str(hour)+":00:00")
+        angles = sun.CalcSonnenstand("2022-04-04 "+str(hour)+":00:00")
         print(f"Azimuth: {angles['Azimuth']}")
         print(f"Hohenwinkel: {angles['Hohenwinkel']}")
-        sun.x = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
-        sun.y = y * math.sin(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
-        sun.z = y * math.cos(math.radians(angles["Hohenwinkel"])) * -1
+        sun.x = r * math.cos(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
+        sun.y = r * math.cos(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
+        sun.z = r * math.sin(math.radians(angles["Hohenwinkel"])) 
          
         
         print(f"X Koordinate: {sun.x}")
