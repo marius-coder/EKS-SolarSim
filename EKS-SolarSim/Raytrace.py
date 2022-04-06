@@ -11,10 +11,31 @@ def DrawLine(v1, v2):
 	glVertex3f(v2[0], v2[1], v2[2])
 	glEnd()
 
+def DrawSunRay(obj_Sunray,v1, v2):
+	glPushMatrix()
+
+
+	obj_Sunray.vertices[0] = tuple(list([v1[0], v1[1]-5, v1[2]+10]))
+	obj_Sunray.vertices[1] = tuple(list([v1[0], v1[1]-5, v1[2]+10]))
+	obj_Sunray.vertices[2] = tuple(list([v1[0], v1[1]-5, v1[2]+10]))
+	obj_Sunray.vertices[3] = tuple(list([v1[0], v1[1]-5, v1[2]+10]))
+
+	obj_Sunray.vertices[0] = tuple(list([v2[0], v2[1], v2[2]+1]))
+	obj_Sunray.vertices[1] = tuple(list([v2[0], v2[1], v2[2]+1]))
+	obj_Sunray.vertices[2] = tuple(list([v2[0], v2[1], v2[2]+1]))
+	obj_Sunray.vertices[3] = tuple(list([v2[0], v2[1], v2[2]+1]))
+
+	obj_Sunray.generate()
+	obj_Sunray.render()
+
+	glPopMatrix()
+
 
 def CreateConvexPolygon(obj):
+	"""Diese Funktion nimmt ein Gebaude welches nur aus Quadern bestehen darf, und teilt 
+	dieses in Konvexe Quader."""
 
-	#Zuerst werden alle horizontalen Flchen herausgefunden
+	#Zuerst werden alle horizontalen Flachen herausgefunden
 	z_levels = []
 	dic_Coords = {}
 	for face in obj.faces:

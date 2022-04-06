@@ -8,7 +8,7 @@ from OpenGL.GLU import *
 from objloader import *
 
 from Data.Sonnenstand import Sonne
-from Raytrace import DrawLine, CreateConvexPolygon
+from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon
 import math
 
 pygame.init()
@@ -30,6 +30,7 @@ obj = OBJ("Building1.obj", swapyz=True)
 
 
 obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
+obj_Sunray = OBJ(".\Objects\Sonne\Sunray.obj", swapyz=True)
 obj_Sun.generate()
 obj.generate()
 CreateConvexPolygon(obj)
@@ -47,7 +48,7 @@ mouseMove = [0, 0]
 pygame.mouse.set_pos(displayCenter)
 
 x = 0
-r = 200
+r = 10
 A = 0
 
 hour = 0
@@ -138,7 +139,7 @@ while run:
         glPushMatrix()
         glRotatef(A,1,1,1)
         glScalef(-1.0, 1.0, 1.0)
-        obj.render()
+        #obj.render()
         glPopMatrix()
 
         glPushMatrix()
@@ -177,6 +178,8 @@ while run:
         glPopMatrix()
 
         DrawLine([0,0,0], [sun.x,sun.y,sun.z])
+        DrawSunRay(obj_Sunray,[0,0,0], [sun.x,sun.y,sun.z])
+
 
         glColor4f(1, 0, 0, 1)
         DrawLine([-100,0,0], [100,0,0])
