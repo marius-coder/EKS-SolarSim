@@ -8,7 +8,7 @@ from OpenGL.GLU import *
 from objloader import *
 
 from Data.Sonnenstand import Sonne
-from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon
+from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon, GetCoordinates
 import math
 
 pygame.init()
@@ -84,9 +84,9 @@ while run:
         if keypress[pygame.K_DOWN]:
             r -= 1
         if keypress[pygame.K_LEFT]:
-            x -= 1
+            x -= 10
         if keypress[pygame.K_RIGHT]:
-            x += 1
+            x += 10
         if keypress[pygame.K_HOME]:  
             calculate = True
         if keypress[pygame.K_END]: 
@@ -138,19 +138,19 @@ while run:
 
         glPushMatrix()
         glRotatef(A,1,1,1)
-        glScalef(-1.0, 1.0, 1.0)
-        #obj.render()
+        #glScalef(-1.0, 1.0, 1.0)
+        obj.render()
         glPopMatrix()
 
         glPushMatrix()
 
-        glColor4f(0.5, 0.5, 0.5, 1)
-        glBegin(GL_QUADS)
-        glVertex3f(-10, -10, -2)
-        glVertex3f(10, -10, -2)
-        glVertex3f(10, 10, -2)
-        glVertex3f(-10, 10, -2)
-        glEnd()
+        #glColor4f(0.5, 0.5, 0.5, 1)
+        #glBegin(GL_QUADS)
+        #glVertex3f(-10, -10, -2)
+        #glVertex3f(10, -10, -2)
+        #glVertex3f(10, 10, -2)
+        #glVertex3f(-10, 10, -2)
+        #glEnd()
 
 
 
@@ -178,7 +178,7 @@ while run:
         glPopMatrix()
 
         DrawLine([0,0,0], [sun.x,sun.y,sun.z])
-        DrawSunRay(obj_Sunray,[0,0,0], [sun.x,sun.y,sun.z])
+        #DrawSunRay(obj_Sunray,[0,0,0], [sun.x,sun.y,sun.z])
 
 
         glColor4f(1, 0, 0, 1)
@@ -193,7 +193,8 @@ while run:
         glColor4f(0.5, 0.5, 0.5, 1)
         glLineWidth(2.0)
 
-
+        print(f"X: {x}")
+        GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = obj.faces[x], az = angles['Azimuth'])
 
         globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"], debug = True)
         if calculate == True:
@@ -203,8 +204,9 @@ while run:
                 print(obj.vertices[face[0][1]-1])
                 print(obj.vertices[face[0][2]-1])
                 print(obj.vertices[face[0][3]-1])
-                sun.AddOrientationandTilt(obj, face, angles, globalStrahlung)
-                print("----------------------------------")
+                GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = face)
+                #sun.AddOrientationandTilt(obj, face, angles, globalStrahlung)
+                #print("----------------------------------")
             calculate = False
 
 
