@@ -8,7 +8,7 @@ from OpenGL.GLU import *
 from objloader import *
 
 from Data.Sonnenstand import Sonne
-from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon, GetCoordinates
+from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon, GetCoordinates, MinkowskiDifference
 import math
 
 pygame.init()
@@ -33,12 +33,15 @@ obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
 obj_Sunray = OBJ(".\Objects\Sonne\Sunray.obj", swapyz=True)
 obj_Sun.generate()
 obj.generate()
-CreateConvexPolygon(obj)
+Convex_Objects = CreateConvexPolygon(obj)
 glMatrixMode(GL_PROJECTION)
 gluPerspective(90, (display[0]/display[1]), 0.1, 5000.0)
 
 glMatrixMode(GL_MODELVIEW)
 gluLookAt(0, -8, 0, 0, 0, 0, 0, 0, 1)
+camera_x = 0
+camera_y = 0
+camera_z = 0
 viewMatrix = glGetFloatv(GL_MODELVIEW_MATRIX)
 glLoadIdentity()
 
@@ -103,19 +106,25 @@ while run:
         glLoadIdentity()
 
         # apply the movment 
-        camera_Speed = 0.2
+        camera_Speed = 0.5
         if keypress[pygame.K_w]:
             glTranslatef(0,0,camera_Speed)
+            camera_x -= camera_Speed
         if keypress[pygame.K_s]:
             glTranslatef(0,0,-camera_Speed)
+            camera_x += camera_Speed
         if keypress[pygame.K_d]:
             glTranslatef(-camera_Speed,0,0)
+            camera_y += camera_Speed
         if keypress[pygame.K_a]:
             glTranslatef(camera_Speed,0,0)
+            camera_y -= camera_Speed
         if keypress[pygame.K_SPACE]:
             glTranslatef(0,-camera_Speed,0)
+            camera_z -= camera_Speed
         if keypress[pygame.K_LSHIFT]:
             glTranslatef(0,camera_Speed,0)
+            camera_z += camera_Speed
         if keypress[pygame.K_KP_PLUS]:
             hour += 1
         if keypress[pygame.K_KP_MINUS]:
@@ -137,9 +146,10 @@ while run:
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
         glPushMatrix()
-        glRotatef(A,1,1,1)
+        #glRotatef(A,1,1,1)
         #glScalef(-1.0, 1.0, 1.0)
-        obj.render()
+        if calculate:
+            obj.render()
         glPopMatrix()
 
         glPushMatrix()
@@ -167,11 +177,16 @@ while run:
         sun.x = r * math.cos(math.radians(angles["Hohenwinkel"])) * math.cos(math.radians(angles["Azimuth"]))        
         sun.y = r * math.cos(math.radians(angles["Hohenwinkel"])) * math.sin(math.radians(angles["Azimuth"]))
         sun.z = r * math.sin(math.radians(angles["Hohenwinkel"])) 
-         
+        
+        print(f"X Kamera: {camera_x}")
+        print(f"Y Kamera: {camera_y}")
+        print(f"Z Kamera: {camera_z}")
         
         print(f"X Koordinate: {sun.x}")
         print(f"Y Koordinate: {sun.y}")
         print(f"Z Koordinate: {sun.z}")
+
+
 
         glTranslate(sun.x, sun.y , sun.z)
         obj_Sun.render()
@@ -194,24 +209,28 @@ while run:
         glLineWidth(2.0)
 
         print(f"X: {x}")
-        GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = obj.faces[x], az = angles['Azimuth'])
+        GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = obj.faces[x], angles = angles, r = r, sun = sun)
+
+        MinkowskiDifference(Convex_Objects, obj_Sunray.vertices)
+
 
         globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"], debug = True)
-        if calculate == True:
-            for face in obj.faces:
+        #if calculate == True:
+
+           # for face in obj.faces:
             
-                print(obj.vertices[face[0][0]-1])
-                print(obj.vertices[face[0][1]-1])
-                print(obj.vertices[face[0][2]-1])
-                print(obj.vertices[face[0][3]-1])
-                GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = face)
+                #print(obj.vertices[face[0][0]-1])
+                #print(obj.vertices[face[0][1]-1])
+                #print(obj.vertices[face[0][2]-1])
+                #print(obj.vertices[face[0][3]-1])
+                #GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = face)
                 #sun.AddOrientationandTilt(obj, face, angles, globalStrahlung)
                 #print("----------------------------------")
-            calculate = False
+            #calculate = False
 
 
         pygame.display.flip()
-        pygame.time.wait(10)
+        pygame.time.wait(50)
         import os
         clear = lambda: os.system('cls')
         clear()
