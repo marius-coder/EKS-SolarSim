@@ -8,7 +8,7 @@ from OpenGL.GLU import *
 from objloader import *
 
 from Data.Sonnenstand import Sonne
-from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon, GetCoordinates, MinkowskiDifference
+from Raytrace import DrawLine, DrawSunRay, CreateConvexPolygon, GetCoordinates, MinkowskiDifference, GatherVertices
 import math
 
 pygame.init()
@@ -27,13 +27,13 @@ glLightfv(GL_LIGHT0, GL_AMBIENT, [0.5, 0.5, 0.5, 1])
 glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1])
 
 obj = OBJ("Building1.obj", swapyz=True)
-
-
 obj_Sun = OBJ(".\Objects\Sonne\Sonne.obj", swapyz=True)
 obj_Sunray = OBJ(".\Objects\Sonne\Sunray.obj", swapyz=True)
+
 obj_Sun.generate()
 obj.generate()
 Convex_Objects = CreateConvexPolygon(obj)
+dic_Vertices = GatherVertices(obj = obj, conObj = Convex_Objects)
 glMatrixMode(GL_PROJECTION)
 gluPerspective(90, (display[0]/display[1]), 0.1, 5000.0)
 
@@ -153,17 +153,6 @@ while run:
         glPopMatrix()
 
         glPushMatrix()
-
-        #glColor4f(0.5, 0.5, 0.5, 1)
-        #glBegin(GL_QUADS)
-        #glVertex3f(-10, -10, -2)
-        #glVertex3f(10, -10, -2)
-        #glVertex3f(10, 10, -2)
-        #glVertex3f(-10, 10, -2)
-        #glEnd()
-
-
-
         cx = 0
         cy = 0
         print(f"Stunde: {hour}")
@@ -210,8 +199,8 @@ while run:
 
         print(f"X: {x}")
         GetCoordinates(obj_Sunray = obj_Sunray,v2 = [sun.x,sun.y,sun.z], obj = obj, face = obj.faces[x], angles = angles, r = r, sun = sun)
-
-        MinkowskiDifference(Convex_Objects, obj_Sunray.vertices)
+        
+        MinkowskiDifference(Convex_Objects, obj_Sunray.vertices, dic_Vertices)
 
 
         globalStrahlung = sun.CalcGlobalstrahlung(hohenwinkel = angles["Hohenwinkel"], debug = True)
