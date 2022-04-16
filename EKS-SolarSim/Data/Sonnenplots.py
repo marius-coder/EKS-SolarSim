@@ -19,7 +19,7 @@ theta = inter*np.pi
 ax.set_rlim(bottom=90, top=0)
 ax.plot(theta,sun.horizonList, color = "grey")
 plt.fill_between(theta, 0, sun.horizonList, alpha=0.2)
-#ticks neu setzen und Warning zu unterdrücken
+#ticks neu setzen und Warning zu unterdrï¿½cken
 ticks_loc = ax.get_xticks().tolist()
 ax.xaxis.set_major_locator(mticker.FixedLocator(ticks_loc))
 ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
